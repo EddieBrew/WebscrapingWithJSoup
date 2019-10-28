@@ -70,7 +70,7 @@ public class MainActivity extends AppCompatActivity {
 		button.setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View view) {
-				webscrapingFromLotterySite(website);
+				//webscrapingFromLotterySite(website);
 				//webscrapingFromLotterySiteUsingCallable(website);
 				webscrapingFromLotterySiteUsingVolley(website);
 			}
@@ -105,6 +105,7 @@ public class MainActivity extends AppCompatActivity {
 					Elements table = doc.getElementsByTag("tbody"); //get the body of the table
 					Elements rows = table.select("tr");//get the row tatag for the table
 
+
 					//Log.i("OUT1", rows.text());
 					for (org.jsoup.nodes.Element row : rows) {
 						Elements cells = row.children();//get all elements in the result cell
@@ -125,6 +126,8 @@ public class MainActivity extends AppCompatActivity {
 						}
 					}
 					Log.i("OUTPUT", sNodes);
+
+
 
 				} catch (IOException e) {
 					e.printStackTrace();
@@ -187,7 +190,8 @@ public class MainActivity extends AppCompatActivity {
 		stringRequest = new StringRequest(Request.Method.GET, website, new Response.Listener<String>() {
 			@Override
 			public void onResponse(String response) {
-				ParseHTMLPage(response);
+				//ParseHTMLPage(response);
+				ParseHTMLPage2(response);
 			}
 		}, new Response.ErrorListener() {
 			@Override
@@ -203,8 +207,8 @@ public class MainActivity extends AppCompatActivity {
 
 	/*********************************************************************************
 	 *  ParseHTMLPage takes the string response from a Volley network call and parses the Table,
-	 *  containing the past 52 weeks lottery data. The data is is then used to update and display
-	 *  in the UI's scrollable textView
+	 *  containing the past 52 weeks lottery data. The data is is then used to update and displays
+	 * only the lottery numbers in the UI's scrollable textView
 	 *
 	 *
 	 * @pre none
@@ -235,10 +239,10 @@ public class MainActivity extends AppCompatActivity {
 			//Log.i("OUT1", rows.text());
 			for (Element row : rows) {
 				Elements cells = row.children();//get all elements in the result cell
-				Log.i("NUMLIST", cells.text());
+				//Log.i("NUMLIST", cells.text());
 				for(Element cell: cells) {
 					Elements numListings = cell.getElementsByAttributeValue("class", "draw-result list-unstyled list-inline" );
-					Log.i("XXXXX", numListings.text());
+					//Log.i("XXXXX", numListings.text());
 					for(Element numListing : numListings ){
 						Elements numbers = numListing.getElementsByTag("li");
 
@@ -257,6 +261,84 @@ public class MainActivity extends AppCompatActivity {
 
 
 		jsonTextView.setText(sNodes);
+	}
+
+
+	/*********************************************************************************
+	 *  ParseHTMLPage takes the string response from a Volley network call and parses the Table,
+	 *  containing the past 52 weeks lottery data. The data is is then used to update and displays
+	 *  the date and lottery numbers in the UI's scrollable textView
+	 *
+	 *
+	 * @pre none
+	 * @parameter String response
+	 * @post passes the network response to another method for data parsing
+	 **********************************************************************************/
+
+	private void ParseHTMLPage2(final String response) {
+
+		//final String website = "https://www.lotteryusa.com/california/super-lotto-plus/year";
+		if( response == "")return;
+		String sNodes = "";
+       List<LotteryNumbersHolder> myDailyLotto = new ArrayList<>();
+		//String sNodes = "";
+		List<Integer> list = new ArrayList<>();
+		//jsonTextView.setText(response);
+		StringBuilder myLottoInfo =  new StringBuilder();
+		StringBuilder myDate = new StringBuilder();
+		Document doc = null;
+
+		doc = parse(response);
+		//Log.i("list size", doc.text());
+
+		try {
+			Elements table = doc.getElementsByTag("tbody"); //get the body of the table
+			Elements rows = table.select("tr");//get the row tatag for the table
+
+			for (Element row : rows) {
+				Elements cells = row.children();//get all elements in the result cell
+				//Log.i("NUMLIST", cells.text());
+				for(Element cell: cells) {
+					Elements date = cell.getElementsByAttributeValue("class", "date");
+					myDate.append(date.text());
+
+					Elements numListings = cell.getElementsByAttributeValue("class", "draw-result list-unstyled list-inline" );
+					//Log.i("XXXXX", numListings.text());
+					for(Element numListing : numListings ){
+						Elements numbers = numListing.getElementsByTag("li");
+
+						for(Element number : numbers ){
+							String lotteryNumber = number.text();
+							myLottoInfo.append(lotteryNumber + " ") ;
+						}
+
+						myDailyLotto.add(new LotteryNumbersHolder(myDate.toString(), myLottoInfo.toString()));
+						myDate.setLength(0); //empties memory that holds the date
+						myLottoInfo.setLength(0);
+					}
+				}
+
+			}
+		}catch(Exception e){
+			e.printStackTrace();
+		}
+
+
+		StringBuilder dataString = new StringBuilder();
+
+		for( int i = 0; i < myDailyLotto.size(); i++){
+			dataString.append(myDailyLotto.get(i).getDate() + " :: "); //add date to string
+			Integer numbers[] = myDailyLotto.get(i).getLottoNumbers();
+
+			for(int j = 0; j < 5; j++ ){
+		    	dataString.append(numbers[j] + " ");//add lottery numbers to string
+		    }
+		    dataString.append(myDailyLotto.get(i).getMegaNumber());//adds mega number to string
+		    dataString.append("\n");
+         }
+
+		//Log.i("OUTPUT", myLottoInfo.toString());
+         jsonTextView.setText(dataString.toString());//places string content into scroll textView
 	}
 
 
